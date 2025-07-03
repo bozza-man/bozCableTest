@@ -3,6 +3,20 @@
 echo "=== Cable Tester with Dynamic UI & SSH Manager ==="
 echo ""
 
+# Check if port 8765 is in use
+if lsof -i :8765 >/dev/null 2>&1; then
+    echo "⚠️  Port 8765 is already in use"
+    echo ""
+    read -p "Kill existing backend processes? (y/n) " -n 1 -r
+    echo ""
+    if [[ $REPLY =~ ^[Yy]$ ]]; then
+        ./cleanup_backend.sh
+    else
+        echo "❌ Cannot start - port is in use"
+        exit 1
+    fi
+fi
+
 # Kill existing sessions
 tmux kill-session -t cable_dynamic 2>/dev/null || true
 
