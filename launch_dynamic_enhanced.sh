@@ -38,11 +38,11 @@ tmux send-keys -t cable_dynamic:0.0 "python src/backend_server_logged.py" C-m
 # Split horizontally for dynamic frontend with SSH manager
 tmux split-window -v -t cable_dynamic:0.0 -p 70 -c "$PWD" bash
 
-# Start enhanced dynamic frontend
+# Start optimized dynamic frontend
 tmux send-keys -t cable_dynamic:0.1 "source venv/bin/activate" C-m
 sleep 0.5
 tmux send-keys -t cable_dynamic:0.1 "sleep 3" C-m
-tmux send-keys -t cable_dynamic:0.1 "python src/frontend_dynamic_ssh.py" C-m
+tmux send-keys -t cable_dynamic:0.1 "python src/frontend_dynamic_optimized.py" C-m
 
 # Set pane titles
 tmux select-pane -t cable_dynamic:0.0 -T "Backend Server"

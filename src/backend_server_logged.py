@@ -628,7 +628,7 @@ class CableTesterBackend:
     async def message_broadcaster(self):
         """Broadcast queued messages to clients"""
         last_status_update = 0
-        status_interval = 5  # Send status every 5 seconds
+        status_interval = 10  # Send status every 10 seconds to reduce UI updates
         
         while self.running:
             try:
