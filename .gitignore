@@ -1,0 +1,116 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual Environment
+venv/
+ENV/
+env/
+.venv/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Logs
+logs/
+*.log
+log/
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+
+# SSH Keys and Secrets
+*.pem
+*.key
+*.cert
+.env
+.env.local
+.env.*.local
+secrets/
+ssh_keys/
+id_rsa*
+id_ed25519*
+
+# Config files with sensitive data
+ssh_config.json
+cable_config.json
+*_config_local.json
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+.temp/
+tmp/
+
+# Session files
+.tmux-session
+*.session
+
+# OS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Project specific
+authorized_cables.db
+*.db
+remote_agent.py.deployed
+
+# Documentation build
+docs/_build/
+site/
+
+# Jupyter Notebooks
+.ipynb_checkpoints/
+*.ipynb
+
+# pyenv
+.python-version
+
+# pipenv
+Pipfile.lock
+
+# Misc
+*.orig
+.history/
