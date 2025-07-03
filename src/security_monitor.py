@@ -9,37 +9,16 @@ from typing import Dict, List, Tuple, Optional
 from datetime import datetime
 from bruteforce_protection import BruteForceProtection
 from usb_packet_inspector import USBPacketInspector
+from threat_database import ThreatDatabase
 
 class SecurityMonitor:
     def __init__(self):
         self.baseline_devices = {}
         self.bruteforce_protection = BruteForceProtection()
         self.packet_inspector = USBPacketInspector(self.bruteforce_protection)
-        self.threat_signatures = {
-            'hak5_omg': [
-                'O.MG',
-                'DuckyScript',
-                'WiFi Duck',
-                'KeyGrabber'
-            ],
-            'rubber_ducky': [
-                'USB Rubber Ducky',
-                'Bad USB',
-                'Bash Bunny',
-                'Key Croc'
-            ],
-            'suspicious_vid_pid': [
-                ('0x05ac', '0x024f'),  # Suspicious Apple-like VID/PID
-                ('0x03eb', '0x2ff4'),  # Known BadUSB VID/PID
-            ],
-            'suspicious_descriptors': [
-                'HID Keyboard',
-                'Mass Storage',
-                'Network Adapter',
-                'Serial Device'
-            ]
-        }
+        self.threat_database = ThreatDatabase()
         self.authorized_cables = set()
+        self.interface_count_cache = {}  # Track interface counts
         
     def capture_baseline(self) -> Dict:
         """Capture baseline USB device state before cable insertion"""
@@ -187,26 +166,33 @@ class SecurityMonitor:
             # Record device for tracking
             self.bruteforce_protection.record_reconnection(device_id)
             
-            # Check device name against known threats
-            device_name = str(device.get('name', '')).lower()
-            for threat_type, signatures in self.threat_signatures.items():
-                # Skip non-string signature types (like VID/PID tuples)
-                if threat_type == 'suspicious_vid_pid':
-                    continue
-                for signature in signatures:
-                    if str(signature).lower() in device_name:
-                        threats_found.append(f"Potential {threat_type} detected: {signature}")
+            # Check device name against threat database
+            device_name = device.get('name', '')
+            is_name_threat, name_threats = self.threat_database.check_device_name(device_name)
+            if is_name_threat:
+                threats_found.extend(name_threats)
             
-            # Check VID/PID combinations
+            # Check VID/PID against threat database
             vid = device.get('vendor_id', '')
             pid = device.get('product_id', '')
-            for sus_vid, sus_pid in self.threat_signatures['suspicious_vid_pid']:
-                if vid == sus_vid and pid == sus_pid:
-                    threats_found.append(f"Suspicious VID/PID combination: {vid}:{pid}")
+            is_vid_pid_threat, vid_pid_desc = self.threat_database.check_vid_pid(vid, pid)
+            if is_vid_pid_threat:
+                threats_found.append(vid_pid_desc)
+                
+            # Check manufacturer
+            manufacturer = device.get('manufacturer', '')
+            is_mfg_threat, mfg_desc = self.threat_database.check_manufacturer(manufacturer)
+            if is_mfg_threat:
+                threats_found.append(mfg_desc)
             
             # Check for multiple device functions (common in malicious cables)
             if self._check_multiple_functions(device):
                 threats_found.append("Multiple device functions detected (potential BadUSB)")
+                
+            # Check interface count for HID devices
+            interface_threat = self._check_interface_count(device)
+            if interface_threat:
+                threats_found.append(interface_threat)
                 
             # Track descriptor changes
             self.bruteforce_protection.record_descriptor_change(device_id, device)
@@ -231,6 +217,29 @@ class SecurityMonitor:
         name = device.get('name', '').lower()
         function_keywords = ['composite', 'multifunction', 'hub']
         return any(keyword in name for keyword in function_keywords)
+    
+    def _check_interface_count(self, device: Dict) -> Optional[str]:
+        """Check interface count for HID devices"""
+        # If device claims to be a keyboard, check interface count
+        device_name = device.get('name', '').lower()
+        device_class = device.get('device_class', '').lower()
+        
+        # Check if this appears to be a keyboard
+        keyboard_indicators = ['keyboard', 'kbd', 'hid', 'input']
+        is_keyboard = any(ind in device_name for ind in keyboard_indicators) or 'hid' in device_class
+        
+        if is_keyboard:
+            # Get interface count from IORegistry or descriptor
+            device_id = f"{device.get('vendor_id')}:{device.get('product_id')}"
+            
+            # Check cached interface count
+            interface_count = self.interface_count_cache.get(device_id, 1)
+            
+            # Legitimate keyboards have 2+ interfaces
+            if interface_count == 1:
+                return "Keyboard with only 1 interface detected (legitimate keyboards have 2+)"
+                
+        return None
     
     def _check_new_network_interfaces(self) -> List[str]:
         """Check for new network interfaces"""
