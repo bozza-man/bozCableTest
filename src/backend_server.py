@@ -19,11 +19,13 @@ from logger_config import CableTesterLogger
 from security_monitor import SecurityMonitor
 from ssh_manager import SSHManager
 from usb_monitor import USBMonitor, USBEvent
+from smart_logger import SmartLoggerAdapter
 
 class CableTesterBackend:
     def __init__(self, debug=False):
         # Setup logging
-        self.logger = CableTesterLogger('backend', debug=debug).get_logger()
+        base_logger = CableTesterLogger('backend', debug=debug).get_logger()
+        self.logger = SmartLoggerAdapter(base_logger)
         self.logger.info("="*60)
         self.logger.info("Cable Tester Backend Starting")
         self.logger.info(f"Debug mode: {debug}")
@@ -628,7 +630,7 @@ class CableTesterBackend:
     async def message_broadcaster(self):
         """Broadcast queued messages to clients"""
         last_status_update = 0
-        status_interval = 10  # Send status every 10 seconds to reduce UI updates
+        status_interval = 30  # Send status every 30 seconds to reduce noise
         
         while self.running:
             try:

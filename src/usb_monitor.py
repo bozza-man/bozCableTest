@@ -98,12 +98,10 @@ class USBMonitor:
         
         # If no devices found, try ioreg as fallback
         if len(devices) == 0:
-            print("DEBUG: Trying ioreg fallback")
             devices = self._get_devices_via_ioreg()
         
         # Always populate with basic USB device info if still empty
         if len(devices) == 0:
-            print("DEBUG: Using basic ioreg scan")
             devices = self._get_basic_usb_devices()
             
         return devices
