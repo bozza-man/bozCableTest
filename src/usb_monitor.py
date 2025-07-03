@@ -68,9 +68,7 @@ class USBMonitor:
                 self._detect_changes(current_devices)
                 time.sleep(poll_interval)
             except Exception as e:
-                print(f"Monitor error: {e}")
-                import traceback
-                traceback.print_exc()
+                # Monitor error - silently continue
                 time.sleep(1)
     
     def _get_current_devices(self) -> Dict:
@@ -94,7 +92,8 @@ class USBMonitor:
             # Possible enumeration hang
             self._handle_enumeration_timeout()
         except Exception as e:
-            print(f"Failed to get USB devices via system_profiler: {e}")
+            # Failed to get USB devices via system_profiler
+            pass
         
         # If no devices found, try ioreg as fallback
         if len(devices) == 0:
@@ -137,7 +136,7 @@ class USBMonitor:
         
         # Handle USB data format
         if 'SPUSBDataType' in data:
-            print(f"DEBUG: Found {len(data['SPUSBDataType'])} USB root items")
+            # DEBUG: Found USB root items
             for root_item in data['SPUSBDataType']:
                 if '_items' in root_item:
                     # This is a USB controller/hub with devices
@@ -162,10 +161,10 @@ class USBMonitor:
                         }
                         devices[device_id] = device_info
         else:
-            print("DEBUG: No SPUSBDataType found in data")
-            print(f"DEBUG: Data keys: {list(data.keys())}")
+            # DEBUG: No SPUSBDataType found in data
+            pass
         
-        print(f"DEBUG: Parsed {len(devices)} devices")
+        # DEBUG: Parsed devices
         return devices
     
     def _get_devices_via_ioreg(self) -> Dict:
@@ -220,10 +219,11 @@ class USBMonitor:
                     if device_id != ':::':
                         devices[device_id] = current_device
                         
-                print(f"DEBUG: ioreg found {len(devices)} devices")
+                # DEBUG: ioreg found devices
                 
         except Exception as e:
-            print(f"Failed to get USB devices via ioreg: {e}")
+            # Failed to get USB devices via ioreg
+            pass
             
         return devices
     
@@ -262,12 +262,14 @@ class USBMonitor:
                                 'device_speed': 'Unknown',
                                 'raw_data': {'line': line}
                             }
-                            print(f"DEBUG: Found USB device: {name_part} @ {location}")
+                            # DEBUG: Found USB device
+                            pass
                 
-                print(f"DEBUG: Basic scan found {len(devices)} USB devices")
+                # DEBUG: Basic scan found USB devices
                 
         except Exception as e:
-            print(f"Failed basic USB scan: {e}")
+            # Failed basic USB scan
+            pass
             
         return devices
     
