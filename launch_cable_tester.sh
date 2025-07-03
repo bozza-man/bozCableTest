@@ -10,7 +10,7 @@ if lsof -i :8765 >/dev/null 2>&1; then
     read -p "Kill existing backend processes? (y/n) " -n 1 -r
     echo ""
     if [[ $REPLY =~ ^[Yy]$ ]]; then
-        ./cleanup_backend.sh
+        ./cleanup.sh
     else
         echo "❌ Cannot start - port is in use"
         exit 1
@@ -33,7 +33,7 @@ fi
 # Start backend in first pane
 tmux send-keys -t cable_dynamic:0.0 "source venv/bin/activate" C-m
 sleep 0.5
-tmux send-keys -t cable_dynamic:0.0 "python src/backend_server_logged.py" C-m
+tmux send-keys -t cable_dynamic:0.0 "python src/backend_server.py" C-m
 
 # Split horizontally for dynamic frontend with SSH manager
 tmux split-window -v -t cable_dynamic:0.0 -p 70 -c "$PWD" bash
@@ -42,7 +42,7 @@ tmux split-window -v -t cable_dynamic:0.0 -p 70 -c "$PWD" bash
 tmux send-keys -t cable_dynamic:0.1 "source venv/bin/activate" C-m
 sleep 0.5
 tmux send-keys -t cable_dynamic:0.1 "sleep 3" C-m
-tmux send-keys -t cable_dynamic:0.1 "python src/frontend_dynamic_ssh_enhanced.py" C-m
+tmux send-keys -t cable_dynamic:0.1 "python src/frontend_dynamic.py" C-m
 
 # Set pane titles
 tmux select-pane -t cable_dynamic:0.0 -T "Backend Server"

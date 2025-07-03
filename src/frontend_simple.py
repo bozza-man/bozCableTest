@@ -4,15 +4,18 @@ import asyncio
 import websockets
 import json
 import sys
+import threading
 from datetime import datetime
 import getpass
 from typing import Dict
+import queue
 
 class SimpleFrontend:
     def __init__(self):
         self.websocket = None
         self.connected = False
         self.running = True
+        self.input_queue = queue.Queue()
         
     async def connect_to_backend(self, uri='ws://localhost:8765'):
         """Connect to backend WebSocket server"""
@@ -23,6 +26,7 @@ class SimpleFrontend:
             return True
         except Exception as e:
             print(f"[ERROR] Failed to connect: {e}")
+            print("Make sure the backend is running: python src/backend_server.py")
             return False
             
     async def listen_for_messages(self):
@@ -93,66 +97,37 @@ class SimpleFrontend:
         if self.websocket and self.connected:
             await self.websocket.send(json.dumps(command))
             
-    async def interactive_loop(self):
-        """Interactive command loop"""
-        print("\n=== Cable Tester Frontend ===")
-        print("Commands:")
-        print("  1 - Connect SSH to remote Mac")
-        print("  2 - Run security test")
-        print("  3 - Run performance tests")
-        print("  4 - Get status")
-        print("  5 - Emergency stop")
-        print("  q - Quit")
-        print()
-        
-        while self.running and self.connected:
+    def input_thread(self):
+        """Thread to handle blocking input"""
+        while self.running:
             try:
-                # Non-blocking input check
-                await asyncio.sleep(0.1)
-                
-            except KeyboardInterrupt:
+                command = input()
+                self.input_queue.put(command)
+            except EOFError:
+                break
+            except Exception:
                 break
                 
-    async def handle_user_input(self):
-        """Handle user input in separate task"""
-        import aioconsole
-        
+    async def process_input(self):
+        """Process input from queue"""
         while self.running and self.connected:
             try:
-                # Use aioconsole for async input or fall back to sync input
-                try:
-                    command = await aioconsole.ainput()
-                except:
-                    # Fallback: use executor for blocking input
-                    loop = asyncio.get_event_loop()
-                    command = await loop.run_in_executor(None, input)
-                
-                if not command:
-                    continue
+                # Check for input without blocking
+                command = self.input_queue.get_nowait()
                 
                 if command == 'q':
                     self.running = False
                     
                 elif command == '1':
                     print("\n--- SSH Connection ---")
-                    host = input("Remote host: ")
-                    username = input("Username: ")
-                    auth_type = input("Auth type (password/key): ").lower()
-                    
+                    # For demo, using hardcoded values
                     cmd = {
                         'type': 'connect_ssh',
-                        'host': host,
-                        'username': username
+                        'host': '192.168.1.100',
+                        'username': 'testuser',
+                        'password': 'testpass'
                     }
-                    
-                    if auth_type == 'password':
-                        password = getpass.getpass("Password: ")
-                        cmd['password'] = password
-                    else:
-                        key_path = input("Key path (blank for default): ")
-                        if key_path:
-                            cmd['key_path'] = key_path
-                            
+                    print("Connecting to 192.168.1.100...")
                     await self.send_command(cmd)
                     
                 elif command == '2':
@@ -173,37 +148,49 @@ class SimpleFrontend:
                 else:
                     print("Invalid command. Enter 1-5 or q to quit.")
                     
+            except queue.Empty:
+                await asyncio.sleep(0.1)
             except Exception as e:
                 print(f"Input error: {e}")
-                break
+                await asyncio.sleep(0.1)
                 
+    def show_menu(self):
+        """Show command menu"""
+        print("\n=== Cable Tester Frontend ===")
+        print("Commands:")
+        print("  1 - Connect SSH to remote Mac")
+        print("  2 - Run security test")
+        print("  3 - Run performance tests")
+        print("  4 - Get status")
+        print("  5 - Emergency stop")
+        print("  q - Quit")
+        print("\nEnter command: ", end='', flush=True)
+        
     async def main(self):
         """Main frontend loop"""
         # Connect to backend
         if not await self.connect_to_backend():
-            print("Failed to connect to backend. Is the backend server running?")
-            print("Start the backend with: python backend_server.py")
             return
             
+        # Show menu
+        self.show_menu()
+        
+        # Start input thread
+        input_thread = threading.Thread(target=self.input_thread, daemon=True)
+        input_thread.start()
+        
         try:
             # Start tasks
             listen_task = asyncio.create_task(self.listen_for_messages())
-            input_task = asyncio.create_task(self.handle_user_input())
-            display_task = asyncio.create_task(self.interactive_loop())
+            input_task = asyncio.create_task(self.process_input())
             
-            # Wait for any task to complete
-            done, pending = await asyncio.wait(
-                [listen_task, input_task, display_task],
-                return_when=asyncio.FIRST_COMPLETED
-            )
+            # Wait for tasks
+            await asyncio.gather(listen_task, input_task)
             
-            # Cancel remaining tasks
-            for task in pending:
-                task.cancel()
-                
         except KeyboardInterrupt:
             print("\nShutting down...")
         finally:
+            self.running = False
             if self.websocket:
                 await self.websocket.close()
 

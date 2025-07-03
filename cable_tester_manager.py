@@ -20,7 +20,7 @@ class CableTesterManager:
         """Start backend server"""
         print("Starting backend server...")
         
-        backend_script = self.base_dir / "src" / "backend_server_logged.py"
+        backend_script = self.base_dir / "src" / "backend_server.py"
         pid_file = self.pid_dir / "backend.pid"
         
         # Check if already running
@@ -58,7 +58,7 @@ class CableTesterManager:
         """Start frontend console"""
         print("Starting frontend console...")
         
-        frontend_script = self.base_dir / "src" / "frontend_simple_fixed.py"
+        frontend_script = self.base_dir / "src" / "frontend_simple.py"
         
         # Run frontend interactively
         subprocess.run([str(self.venv_python), str(frontend_script)])
@@ -183,7 +183,7 @@ class CableTesterManager:
         subprocess.run([
             "tmux", "new-session", "-d", "-s", "cable_backend",
             f"cd {self.base_dir} && source venv/bin/activate && "
-            f"python src/backend_server_logged.py"
+            f"python src/backend_server.py"
         ])
         
         time.sleep(2)
@@ -192,7 +192,7 @@ class CableTesterManager:
         subprocess.run([
             "tmux", "new-session", "-d", "-s", "cable_frontend",
             f"cd {self.base_dir} && source venv/bin/activate && "
-            f"python src/frontend_simple_fixed.py"
+            f"python src/frontend_simple.py"
         ])
         
         print("\nTmux sessions started:")
