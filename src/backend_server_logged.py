@@ -123,10 +123,20 @@ class CableTesterBackend:
         self.logger.info(f"USB Event: {event_type} - {device.get('name', 'Unknown')} "
                         f"(VID: {device.get('vendor_id')}, PID: {device.get('product_id')})")
         
+        # Send USB event
         self._send_message({
             'type': 'usb_event',
             'event': event_type,
             'device': device
+        })
+        
+        # Also send USB update for dynamic UI
+        state = self.usb_monitor.get_current_state()
+        devices = list(state.get('devices', {}).values())
+        self._send_message({
+            'type': 'usb_update',
+            'devices': devices,
+            'new_device': device if event_type == 'device_added' else None
         })
         
     def _handle_security_alert(self, event):
@@ -218,28 +228,30 @@ class CableTesterBackend:
             
     async def process_command(self, command: Dict):
         """Process command from frontend"""
-        cmd_type = command.get('type')
-        self.logger.info(f"Processing command: {cmd_type}")
+        action = command.get('action') or command.get('type')
+        self.logger.info(f"Processing command: {action}")
         
         try:
-            if cmd_type == 'connect_ssh':
+            if action == 'connect_ssh':
                 await self._handle_ssh_connect(command)
-            elif cmd_type == 'start_security_test':
+            elif action == 'manage_ssh_servers':
+                await self._handle_ssh_management()
+            elif action == 'run_security_test' or action == 'start_security_test':
                 await self._handle_security_test()
-            elif cmd_type == 'start_performance_test':
+            elif action == 'run_performance_test' or action == 'start_performance_test':
                 await self._handle_performance_test()
-            elif cmd_type == 'get_status':
+            elif action == 'get_status':
                 await self._handle_status_request()
-            elif cmd_type == 'emergency_stop':
+            elif action == 'emergency_stop':
                 await self._handle_emergency_stop()
             else:
-                self.logger.warning(f"Unknown command type: {cmd_type}")
+                self.logger.warning(f"Unknown command: {action}")
                 await self.broadcast_message({
                     'type': 'error',
-                    'message': f'Unknown command: {cmd_type}'
+                    'message': f'Unknown command: {action}'
                 })
         except Exception as e:
-            self.logger.error(f"Error processing command {cmd_type}: {e}", exc_info=True)
+            self.logger.error(f"Error processing command {action}: {e}", exc_info=True)
             await self.broadcast_message({
                 'type': 'error',
                 'message': f'Error processing command: {str(e)}'
@@ -273,7 +285,8 @@ class CableTesterBackend:
         await self.broadcast_message({
             'type': 'ssh_status',
             'connected': success,
-            'host': host if success else None
+            'host': host if success else None,
+            'remote_ip': host if success else None
         })
         
     def _connect_ssh(self, host, username, password, key_path):
@@ -293,6 +306,16 @@ class CableTesterBackend:
             self.logger.error(f"SSH connection error: {e}")
             return False
             
+    async def _handle_ssh_management(self):
+        """Handle SSH server management request"""
+        self.logger.info("Opening SSH server management")
+        
+        # For now, just acknowledge - the frontend with SSH manager handles this
+        await self.broadcast_message({
+            'type': 'status',
+            'message': 'SSH server management requested'
+        })
+        
     async def _handle_security_test(self):
         """Handle security test request"""
         self.logger.info("Starting security test")
@@ -604,6 +627,9 @@ class CableTesterBackend:
         
     async def message_broadcaster(self):
         """Broadcast queued messages to clients"""
+        last_status_update = 0
+        status_interval = 5  # Send status every 5 seconds
+        
         while self.running:
             try:
                 # Get messages from queue
@@ -618,10 +644,34 @@ class CableTesterBackend:
                 for message in messages:
                     await self.broadcast_message(message)
                     
+                # Send periodic status updates
+                current_time = time.time()
+                if current_time - last_status_update > status_interval:
+                    last_status_update = current_time
+                    await self._send_status_update()
+                    
             except Exception as e:
                 self.logger.error(f"Broadcast error: {e}")
                 
             await asyncio.sleep(0.1)
+            
+    async def _send_status_update(self):
+        """Send periodic status update to keep UI in sync"""
+        if self.connected_clients:
+            # Get USB devices
+            state = self.usb_monitor.get_current_state()
+            devices = list(state.get('devices', {}).values())
+            
+            # Send updates
+            await self.broadcast_message({
+                'type': 'status_update',
+                'status': 'Testing' if self.test_in_progress else 'Idle'
+            })
+            
+            await self.broadcast_message({
+                'type': 'usb_update',
+                'devices': devices
+            })
             
     async def start_server(self, host='localhost', port=8765):
         """Start WebSocket server"""
