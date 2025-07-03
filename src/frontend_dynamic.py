@@ -191,7 +191,7 @@ class DynamicTerminalUI:
     async def listen_for_messages(self):
         """Listen for messages from backend"""
         try:
-            while self.websocket and not self.websocket.closed:
+            while self.websocket:
                 try:
                     message = await asyncio.wait_for(self.websocket.recv(), timeout=0.1)
                     data = json.loads(message)

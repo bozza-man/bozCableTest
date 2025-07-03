@@ -258,7 +258,7 @@ class OptimizedDynamicUI:
     async def listen_for_messages(self):
         """Listen for messages from backend"""
         try:
-            while self.websocket and not self.websocket.closed:
+            while self.websocket:
                 try:
                     message = await asyncio.wait_for(self.websocket.recv(), timeout=0.1)
                     data = json.loads(message)
@@ -269,6 +269,7 @@ class OptimizedDynamicUI:
                     break
                 except Exception as e:
                     self.add_alert(f"Message error: {str(e)}", "ERROR")
+                    break
         finally:
             self.backend_connected = False
             self.needs_status_redraw = True
