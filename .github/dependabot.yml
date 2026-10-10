@@ -1,0 +1,21 @@
+# Managed by Bruteforce-Group/github-governance: created once when missing, then yours to edit.
+version: 2
+updates:
+  - package-ecosystem: "pip"
+    directories:
+      - "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "03:00"
+      timezone: "Australia/Brisbane"
+    open-pull-requests-limit: 5
+    groups:
+      pip-version-updates:
+        applies-to: "version-updates"
+        patterns:
+          - "*"
+      pip-security-updates:
+        applies-to: "security-updates"
+        patterns:
+          - "*"
