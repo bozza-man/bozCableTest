@@ -1,32 +1,32 @@
 # Core dependencies
 asyncio-mqtt==0.16.2
-websockets==12.0
-aiofiles==23.2.1
+websockets==17.2
+aiofiles==25.1.0
 
 # SSH and remote connection
-paramiko==3.4.0
-scp==0.14.5
+paramiko==5.0.0
+scp==0.16.2
 
 # System monitoring
-psutil>=5.9.0
+psutil>=7.2.2
 
 # Utilities
-python-dotenv==1.0.0
-rich==13.7.0
-click==8.1.7
+python-dotenv==1.2.4
+rich==15.0.0
+click==8.5.0
 
 # macOS USB monitoring
-pyobjc-core==10.1
-pyobjc-framework-Cocoa==10.1
+pyobjc-core==12.2.2
+pyobjc-framework-Cocoa==12.2.2
 pyobjc-framework-IOKit==10.1
 
 # Testing and development
-pytest==7.4.4
-pytest-asyncio==0.21.1
-pytest-cov==4.1.0
+pytest==9.1.1
+pytest-asyncio==1.4.0
+pytest-cov==7.1.0
 
 # Hot reload development
-watchdog==3.0.0
+watchdog==6.0.0
 
 # Logging
-colorlog==6.8.0
+colorlog==6.12.0
